@@ -94,7 +94,7 @@ const $=s=>document.querySelector(s),asset=(p,kind='preview')=>mediaAsset(p,kind
 if(!new URLSearchParams(location.search).has('stage')&&!localStorage.getItem('night-overall-b-introduced')){if(['product','material'].includes(stage)){stage='sequential';roundId='';}localStorage.setItem('night-overall-b-introduced','1');}
 function transform(){$('#leftLabel').hidden=mode==='after';$('.image-label.right').hidden=mode==='before';for(const el of [$('#before'),$('#after')])el.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;$('#zoom').textContent=Math.round(scale*100)+'%';$('#rightView').style.clipPath=mode==='before'?'inset(0 100% 0 0)':mode==='after'?'none':`inset(0 0 0 ${split}%)`;$('#split').style.left=split+'%';$('#split').hidden=mode!=='compare';$('#split').setAttribute('aria-valuenow',Math.round(split));if(scale>1.05){if(mode!=='after')promoteImage($('#before'));if(mode!=='before')promoteImage($('#after'));}}
 function reset(){scale=1;tx=ty=0;split=50;transform()}
-function showModal(src,label){$('#large').src=src;$('#modalTitle').textContent=label;$('#modal').hidden=false;promoteImage($('#large'));}
+function showModal(src,label,materialName=''){$('#large').src=src;$('#modalTitle').textContent=label;$('#modalMaterial').textContent=materialName;$('#modalMaterial').hidden=!materialName;$('#modal').classList.toggle('has-material',Boolean(materialName));if(materialName)$('#modal').setAttribute('aria-describedby','modalMaterial');else $('#modal').removeAttribute('aria-describedby');$('#modal').hidden=false;promoteImage($('#large'));}
 function applyTechnicalRecoveries(){
  for(const r of payload.rounds)for(const c of r.items)if(!c.result&&c.review){c.historicalNonVisualReview=c.review;c.review=null;}
 
@@ -199,17 +199,17 @@ function renderReferences(c){
  const original=originalInputPath(c);
  const product=productCase?.images.find(im=>im.role==='productOriginal')||c.images.find(im=>['productOriginal','productTagged'].includes(im.role));
  const material=c.images.find(im=>im.role==='materialOriginal')||materialCase?.images.find(im=>im.role==='materialOriginal');
- function figure(path,label,className){
+ function figure(path,label,className,materialName=''){
   const fig=document.createElement('figure'),img=document.createElement('img'),caption=document.createElement('figcaption');
   fig.className=className;img.src=asset(path,'reference');img.alt=label;caption.textContent=label;
   img.tabIndex=0;img.setAttribute('role','button');img.setAttribute('aria-label','放大查看'+label);
-  const open=()=>showModal(img.src,label);img.onclick=open;img.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}};
+  const open=()=>showModal(img.src,label,materialName);img.onclick=open;img.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}};
   fig.append(img,caption);return fig;
  }
  if(original){const scene=figure(original,'原图','reference-scene');scene.title=stage==='material'?'材质替换前的实际成品结果':'替换前的原始场景';host.append(scene);}
  const pair=document.createElement('div');pair.className='reference-pair';
  if(product)pair.append(figure(product.path,'产品参考图','reference-product'));
- if(material)pair.append(figure(material.path,'材质参考图','reference-material'));
+ if(material)pair.append(figure(material.path,'材质参考图','reference-material',payload.materialNames?.[c.id]||''));
  if(pair.children.length)host.append(pair);
 }
 function display(){if(stage==='ab'){displayABComparison();return;}$('#reviewTitle').textContent='人工初评';const c=items.find(c=>c.id===selected);$('#references').replaceChildren();if(!c){$('#title').textContent='暂无可查看样本';$('#before').removeAttribute('src');$('#after').removeAttribute('src');$('#empty').textContent=round?'当前筛选无样本':'该阶段尚未开始';$('#review').textContent='';$('#prompt').textContent='';$('#snapshot').textContent='';$('#aiReview').replaceChildren();return}$('#empty').textContent=c.result?'':(c.status==='failed'?'本次请求失败，暂无结果图':c.status==='input_blocked'?(c.inputIssueReason||'缺少明确可换材区域，本组未提交请求'):c.status==='queued'?'本组尚未提交':'结果生成中');$('#title').textContent=c.id+' · '+c.mode+c.category+(c.allProducts?' · 全部产品':'')+(stage==='sequential'?' · 整体效果':'');$('#position').textContent=(items.indexOf(c)+1)+' / '+items.length;$('#after').src=c.result?asset(c.result):asset(c.images[0].path);renderReferences(c);$('#review').replaceChildren();const b=document.createElement('b');b.textContent=c.result?(c.review?.grade||'待初评'):(c.status==='failed'?'接口失败，效果待评':c.status==='input_blocked'?'输入问题，未出图':'待出图');if(c.result&&c.review&&c.review.passed===false)b.style.color='#bd433c';b.className='evaluation-tag'+(c.review?.grade==='待定'?' pending':c.result&&c.review&&c.review.passed===false?' bad':'');$('#review').append(b);$('#reviewTitle').textContent='人工初评';if(c.overallDecision){const reason=document.createElement('p');reason.className='gate-reason';reason.textContent=({product:'未通过：第一关 · 成品替换',material:'未通过：第二关 · 材质替换',passed:'成品关、材质关均通过',input:'输入问题 · 暂不评价整体效果',manual:'人工整体评估'}[c.overallDecision.failureStage]||'待复核');$('#review').append(reason);}renderAIReview(c);$('#prompt').textContent=c.prompt;$('#snapshot').textContent=JSON.stringify(c.snapshot,null,2);updateComparisonImage(c);reset()}

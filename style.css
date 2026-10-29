@@ -123,6 +123,11 @@ body[data-stage="ab"] #abReviewSection{display:block}
 @media(max-width:800px){body[data-stage="ab"] main{height:auto;min-height:75vh}body[data-stage="ab"] #abCompare{grid-template-columns:minmax(0,1fr)}.ab-pane{height:65vh;min-height:320px}}
 
 #modal .modalbar{z-index:2}
+#modal .modal-heading{display:flex;flex-direction:column;gap:10px;min-width:0}
+#modal #modalMaterial{font-size:14px;font-weight:400;color:#e6edf7;line-height:1.5;overflow-wrap:anywhere}
+#modal #modalMaterial[hidden]{display:none}
+#modal.has-material{padding-top:86px}
+#modal.has-material .modalbar{align-items:flex-start}
 
 .ab-zoom-value{font-size:11px;color:#74849a;font-variant-numeric:tabular-nums;min-width:38px;text-align:right}
 .ab-image-viewport.dragging{cursor:grabbing}
